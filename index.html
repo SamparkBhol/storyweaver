@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Story Weaver AI 3.0</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #d4b996 0%, #a68c5b 100%);
+            color: #3a2a1a;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #container {
+            width: 900px;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAJElEQVQYV2NkIAIwEqH+Q4AewOA0IBc0IBc0IBc0IBc0IBcAANoqB7WFLZ3fAAAAAElFTkSuQmCC') repeat; /* Parchment texture */
+            border: 5px solid #8b5a2b;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #container::before, #container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(to bottom, #8b5a2b, #5a3a1a);
+            z-index: 1;
+        }
+
+        #container::before {
+            left: 0;
+            border-radius: 20px 0 0 20px;
+        }
+
+        #container::after {
+            right: 0;
+            border-radius: 0 20px 20px 0;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            color: #3a2a1a;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        #storyArea {
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 245, 220, 0.9);
+            border: 2px solid #8b5a2b;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #storyOutput h2 {
+            font-size: 28px;
+            color: #3a2a1a;
+            border-bottom: 2px solid #8b5a2b;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        #storyOutput h3 {
+            font-size: 22px;
+            color: #3a2a1a;
+            margin-top: 30px;
+        }
+
+        #storyOutput p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+
+        #storyOutput .chapter {
+            margin-bottom: 40px;
+        }
+
+        #toc {
+            margin-bottom: 30px;
+            padding: 10px;
+            background: rgba(255, 235, 205, 0.5);
+            border-radius: 5px;
+        }
+
+        #toc h3 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+
+        #toc ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #toc li {
+            margin: 5px 0;
+        }
+
+        #toc a {
+            color: #5a3a1a;
+            text-decoration: none;
+        }
+
+        #toc a:hover {
+            text-decoration: underline;
+        }
+
+        #narrationControls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #narrationControls button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background: #5a3a1a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #narrationControls button:hover {
+            background: #3a2a1a;
+        }
+
+        #narrationControls p {
+            color: #ff0000;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        #chatbotArea {
+            background: rgba(255, 235, 205, 0.5);
+            border: 2px solid #8b5a2b;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        #chatHistory {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255, 245, 220, 0.9);
+            border-radius: 5px;
+        }
+
+        #chatHistory p {
+            margin: 5px 0;
+        }
+
+        #chatInput {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #8b5a2b;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>The Story Weaver AI 3.0</h1>
+        <div id="storyArea">
+            <div id="storyOutput">
+                <p>Welcome to the Story Weaver AI 3.0. Use the chatbot below to request a story, such as "Tell me a tragic story about loss in a medieval kingdom." You can also listen to the story using the narration controls.</p>
+            </div>
+        </div>
+        <div id="narrationControls">
+            <button onclick="startNarration()">Start Narration</button>
+            <button onclick="pauseNarration()">Pause Narration</button>
+            <button onclick="stopNarration()">Stop Narration</button>
+            <p id="narrationError"></p>
+        </div>
+        <div id="chatbotArea">
+            <div id="chatHistory"></div>
+            <input type="text" id="chatInput" placeholder="Type your request (e.g., 'Tell me a story about betrayal in a futuristic city')" onkeypress="if(event.key === 'Enter') processChatInput()">
+        </div>
+    </div>
+
+    <script>
+        const storyOutput = document.getElementById('storyOutput');
+        const chatHistory = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const narrationError = document.getElementById('narrationError');
+        let audioElement = null;
+        const characters = {
+            loss: [
+                { name: "Eldrin", role: "a grieving blacksmith", backstory: "who lost his entire family to a devastating plague, leaving him hollow and searching for meaning in a world that no longer feels like home.", trait: "stoic but deeply compassionate", goal: "to find a way to honor his family's memory, even if it means facing his own end.", flaw: "his inability to let go of the past, which blinds him to the present." },
+                { name: "Mira", role: "a young healer", backstory: "who watched her patients die one by one during a merciless outbreak, unable to save them despite her best efforts, her hands trembling with every failure.", trait: "gentle yet haunted by guilt", goal: "to discover a cure that could have saved them, no matter how impossible it seems.", flaw: "her self-doubt, which makes her question every decision she makes." },
+                { name: "Caelum", role: "a wandering bard", backstory: "whose songs once filled the halls of great lords, but now he sings only dirges, having lost his beloved to a fire that consumed their village.", trait: "melancholic but poetic", goal: "to compose a final song that will immortalize his love, even if no one hears it.", flaw: "his tendency to live in his memories, ignoring the needs of those around him." },
+                { name: "Lyra", role: "a seamstress", backstory: "who crafted a wedding dress for her daughter, only to bury her in it after a brutal winter claimed her life.", trait: "nurturing but broken", goal: "to create a tapestry that tells her daughter’s story, so she is never forgotten.", flaw: "her obsession with her work, which isolates her from others." }
+            ],
+            betrayal: [
+                { name: "Toren", role: "a disgraced knight", backstory: "who was betrayed by his closest friend, a fellow knight, leading to the fall of his kingdom and his exile into a life of shame.", trait: "bitter but fiercely determined", goal: "to confront his betrayer and reclaim his honor, even if it leads to his doom.", flaw: "his thirst for vengeance, which clouds his judgment." },
+                { name: "Kael", role: "a merchant's son", backstory: "whose father sold him out to a rival guild to save their fortune, leaving him to fend for himself in a city that despises him.", trait: "cunning yet vengeful", goal: "to rise above his father's betrayal and destroy the guild that ruined him, at any cost.", flaw: "his mistrust of others, which prevents him from forming true alliances." },
+                { name: "Ysmeine", role: "a noblewoman", backstory: "whose sister poisoned her to claim their family’s title, leaving her disfigured and cast out, her beauty and status stolen in one cruel act.", trait: "proud but broken", goal: "to expose her sister’s treachery and reclaim her rightful place, even if it means losing everything else.", flaw: "her pride, which makes her underestimate her enemies." },
+                { name: "Darius", role: "a general", backstory: "whose trusted lieutenant sabotaged his campaign, leading to a massacre that he was blamed for, forcing him into hiding.", trait: "strategic but paranoid", goal: "to clear his name and bring his betrayer to justice, even if it means waging a one-man war.", flaw: "his paranoia, which makes him see enemies where there are none." }
+            ],
+            sacrifice: [
+                { name: "Selene", role: "a poet", backstory: "who gave up her voice to save her village from a curse, only to see it fall to ruin anyway when the curse returned with greater fury.", trait: "selfless but despairing", goal: "to find a way to break the curse once and for all, even if it requires her final breath.", flaw: "her selflessness, which leads her to neglect her own needs." },
+                { name: "Lira", role: "a scout", backstory: "who sacrificed her freedom to protect her sister from slavers, but lost her in a raid years later, leaving her with nothing but regret.", trait: "loyal but weary", goal: "to ensure no one else suffers as her sister did, even if it means giving up her own life.", flaw: "her inability to forgive herself, which weighs her down." },
+                { name: "Rovan", role: "a priest", backstory: "who offered his sight to his god in exchange for a vision of salvation, only to see a future of destruction that he cannot prevent.", trait: "devout but tormented", goal: "to defy the vision and save his people, even if it means defying his god.", flaw: "his blind faith, which makes him ignore practical solutions." },
+                { name: "Talia", role: "a mother", backstory: "who gave up her only child to a neighboring kingdom to secure peace, only to learn the peace was a lie and her child was lost.", trait: "loving but shattered", goal: "to find her child and bring them home, even if it means starting a war.", flaw: "her desperation, which makes her act recklessly." }
+            ],
+            despair: [
+                { name: "Veyra", role: "a scholar", backstory: "who discovered a truth so devastating about the world’s end that it shattered her will to live, leaving her to wander in search of a reason to go on.", trait: "brilliant but hopeless", goal: "to find a single spark of hope in a world doomed to darkness, even if it’s her last act.", flaw: "her cynicism, which blinds her to genuine hope." },
+                { name: "Dren", role: "a farmer", backstory: "whose lands were cursed by a vengeful spirit, leaving him to watch his family starve as the earth turned to ash, his prayers unanswered.", trait: "humble but broken", goal: "to lift the curse and save his remaining child, even if it means facing the spirit’s wrath.", flaw: "his stubbornness, which makes him refuse help from others." },
+                { name: "Thalyn", role: "an artist", backstory: "whose hands were crippled by a cruel overlord, leaving her unable to paint the visions that haunt her dreams, her purpose stolen.", trait: "dreamy but despondent", goal: "to create one final masterpiece, even if it costs her everything she has left.", flaw: "her isolation, which keeps her from seeking support." },
+                { name: "Erynn", role: "a navigator", backstory: "who led her crew into a deadly storm, losing them all and her ship, leaving her stranded with the guilt of their deaths.", trait: "resourceful but guilt-ridden", goal: "to find redemption by saving another crew, even if it means facing the same storm.", flaw: "her recklessness, which puts others in danger." }
+            ]
+        };
+
+        const secondaryCharacters = [
+            { name: "Aryn", role: "a childhood friend", relationship: "who has always stood by their side, but harbors a secret that could change everything.", trait: "loyal but secretive" },
+            { name: "Maris", role: "a mysterious stranger", relationship: "who offers cryptic guidance, but their true intentions remain unclear.", trait: "wise but enigmatic" },
+            { name: "Elara", role: "a rival", relationship: "who competes for the same goal, their rivalry tinged with a grudging respect.", trait: "competitive but honorable" },
+            { name: "Joren", role: "a mentor", relationship: "who taught them everything they know, but is now a shadow of their former self, weighed down by their own failures.", trait: "experienced but defeated" },
+            { name: "Sylas", role: "a thief", relationship: "who crosses paths with them, their shared hardship forming an unlikely bond.", trait: "witty but untrustworthy" },
+            { name: "Nia", role: "a healer", relationship: "who tends to their wounds, both physical and emotional, but carries her own scars.", trait: "kind but weary" }
+        ];
+
+        const settings = {
+            "medieval kingdom": {
+                name: "Lirien",
+                description: "a medieval kingdom of crumbling stone castles and barren fields, where the air smells of ash and the people whisper of a time when the land was green and the king was just. The Ashen Veil, a plague that swept through a decade ago, left scars on both the land and its people, and now the survivors cling to fading traditions in a world that no longer cares.",
+                locations: [
+                    "the ruins of the capital, where the royal palace stands empty, its banners torn and its halls echoing with the ghosts of the past",
+                    "a forgotten village on the edge of a dark forest, where the survivors eke out a living amidst the bones of their kin",
+                    "the Cliffs of Sorrow, a jagged expanse where the sea crashes against the rocks, said to be the resting place of the kingdom’s last hope",
+                    "a desolate battlefield, where the skeletons of knights still clutch rusted swords, a testament to a war no one won",
+                    "the Whispering Caverns, where the wind carries the voices of the dead, or so the villagers say"
+                ],
+                events: [
+                    "a sudden resurgence of the Ashen Veil, forcing the survivors to flee their homes once more",
+                    "a rebellion against the last noble houses, who hoard the remaining resources while the people starve",
+                    "a prophecy that speaks of a final reckoning, drawing desperate pilgrims to the kingdom’s edge",
+                    "a dark ritual performed by a cult, hoping to appease the gods but unleashing a greater evil",
+                    "a royal decree that demands the execution of all who speak against the crown, driving dissenters underground"
+                ]
+            },
+            "post-apocalyptic wasteland": {
+                name: "Ashmoor",
+                description: "a post-apocalyptic wasteland where the sky is a perpetual gray, and the ground is cracked and dry, littered with the rusted remains of a fallen civilization. The survivors live in makeshift shelters, scavenging for food and water, their faces etched with the lines of hardship and loss.",
+                locations: [
+                    "a derelict city of twisted metal and broken glass, where the wind howls through the empty streets",
+                    "a hidden oasis, a rare patch of green in the wasteland, guarded by those who would kill to keep it",
+                    "the Crater of Dawn, a massive scar in the earth where the world ended, now a place of pilgrimage for those seeking answers",
+                    "a rusted factory, its machinery long silent, now a refuge for a group of scavengers",
+                    "the Endless Sands, a sea of dunes where mirages play tricks on the desperate"
+                ],
+                events: [
+                    "a toxic storm that sweeps across the wasteland, forcing everyone underground into crumbling bunkers",
+                    "the discovery of a working vehicle, sparking a desperate race to reach a rumored safe haven",
+                    "a cult that worships the end of the world, their rituals growing more violent as their numbers swell",
+                    "a sudden shortage of water, turning allies into enemies as they fight for the last drops",
+                    "a signal from a forgotten satellite, promising rescue but leading to a trap"
+                ]
+            },
+            "colonial village": {
+                name: "Havenwood",
+                description: "a colonial village on the edge of a dark forest, where the wooden houses sag under the weight of time, and the villagers live in fear of the shadows that lurk beyond the tree line. Superstition rules their hearts, and every misfortune is blamed on a curse that no one can name.",
+                locations: [
+                    "the village square, where a weathered gallows stands as a grim reminder of the last witch trial",
+                    "a crumbling church at the forest’s edge, its stained glass shattered but its altar still bearing faded offerings",
+                    "the Witch’s Hollow, a clearing in the forest where the air is unnaturally cold and the ground is marked with strange symbols",
+                    "a lonely mill by the river, its wheel still turning, though no one dares to claim its grain",
+                    "the Widow’s Peak, a hill overlooking the village, where the wind carries whispers of the dead"
+                ],
+                events: [
+                    "a witch hunt that tears the village apart, neighbor turning against neighbor in a frenzy of fear",
+                    "a mysterious illness that claims the children, leaving the villagers to seek answers in the dark forest",
+                    "the arrival of a stranger who claims to know the truth about the curse, but their words sow discord",
+                    "a fire that consumes half the village, leaving the survivors to rebuild amidst their grief",
+                    "a pack of wolves that descends from the forest, their howls a harbinger of worse things to come"
+                ]
+            },
+            "futuristic city": {
+                name: "Neovale",
+                description: "a futuristic city of towering skyscrapers and neon lights, where the air hums with the buzz of drones and the streets are a labyrinth of shadows and wealth. The elite live in floating palaces above the smog, while the poor scrape by in the undercity, their lives controlled by an AI that sees all.",
+                locations: [
+                    "the Undercity, a maze of narrow alleys and flickering lights, where the air is thick with the stench of despair",
+                    "the Skyspire, a gleaming tower where the elite hold court, its glass walls reflecting a city they no longer care to see",
+                    "the Nexus Core, the heart of the city’s AI, a place of cold machinery and whispered secrets",
+                    "a neon-lit marketplace, where contraband and dreams are sold in equal measure",
+                    "the Abandoned Sector, a forgotten part of the city where the AI’s control falters, and rebels gather"
+                ],
+                events: [
+                    "a rebellion by the undercity dwellers, their makeshift weapons no match for the drones that hunt them",
+                    "a glitch in the city’s AI, causing it to turn against the citizens in a bid for control",
+                    "an alien signal that disrupts the city’s systems, sparking chaos and fear of an invasion",
+                    "a power outage that plunges the city into darkness, revealing the true extent of the elite’s corruption",
+                    "a corporate war between rival factions, turning the streets into a battleground"
+                ]
+            }
+        };
+
+        const subplots = [
+            { description: "A long-lost sibling reappears, but their return brings more questions than answers, and their motives are unclear. They claim to have found a way to change the past, but at a cost ${protagonist.name} isn’t sure they can pay." },
+            { description: "A forbidden love blossoms amidst the chaos, but it is doomed from the start, as one must choose between love and duty. Their lover’s final words haunt ${protagonist.name} as they face the consequences of their choice." },
+            { description: "A hidden artifact is discovered, said to hold the key to salvation, but its power comes with a terrible price. ${protagonist.name} must decide whether to use it, knowing it could destroy them." },
+            { description: "A betrayal within ${protagonist.name}’s inner circle threatens to unravel everything they’ve fought for, forcing them to question who they can trust. The traitor’s motives are rooted in a pain ${protagonist.name} never saw coming." },
+            { description: "A child ${protagonist.name} encounters reminds them of their own past, and they vow to protect them, even as the dangers around them grow. But protecting the child may mean sacrificing their own goals." },
+            { description: "A forgotten prophecy resurfaces, hinting at ${protagonist.name}’s role in the world’s end. They must decide whether to embrace their destiny or fight against it, knowing either choice will lead to suffering." }
+        ];
+
+        const emotionalBeats = [
+            { description: "stared into the distance, their eyes hollow, as the weight of their past pressed down like a stone, each memory a shard of glass in their heart." },
+            { description: "clenched their fists, their voice breaking as they whispered, 'I should have done more… I should have been there…'" },
+            { description: "fell to their knees, the cold ground biting into their skin, as they realized the truth they had been running from all along." },
+            { description: "laughed, a bitter, broken sound, as they looked at the ruins of their dreams, knowing they could never rebuild what was lost." },
+            { description: "pressed their hands to their face, tears streaming through their fingers, as the enormity of their failure crashed over them like a wave." },
+            { description: "whispered a name into the darkness, the sound swallowed by the wind, as they realized they would never hear a reply." },
+            { description: "stood motionless, the world blurring around them, as the final piece of their hope slipped through their fingers like sand." }
+        ];
+
+        const tragicTwists = [
+            { description: "the one thing they sought to save was already lost, a cruel joke played by fate that left them with nothing but echoes of what could have been." },
+            { description: "their greatest ally turned against them, driven by a pain they could never understand, their betrayal cutting deeper than any blade." },
+            { description: "the solution they fought for was a lie, a hollow promise that led to more suffering, leaving them to wonder if they had been the villain all along." },
+            { description: "their final act of defiance succeeded, but at the cost of everything they held dear, leaving them to face a victory that tasted of ash." },
+            { description: "the truth they uncovered destroyed the last shred of their identity, forcing them to become someone they no longer recognized." },
+            { description: "their journey revealed that they were the cause of the very tragedy they sought to prevent, a cycle of pain they could never escape." },
+            { description: "the hope they clung to was a mirage, and in their pursuit of it, they lost the only person who truly mattered to them." }
+        ];
+
+        const obstacles = [
+            { description: "a band of marauders who preyed on the weak, their leader demanding a toll ${protagonist.name} could not pay." },
+            { description: "a treacherous landscape, where the ground shifted beneath their feet, threatening to swallow them whole." },
+            { description: "a storm of unprecedented ferocity, its winds tearing at their resolve as they struggled to find shelter." },
+            { description: "a rival who sought the same goal, their determination matched only by their willingness to destroy ${protagonist.name} to achieve it." },
+            { description: "a haunting vision of their past, forcing them to relive their greatest failure in excruciating detail." },
+            { description: "a betrayal from within their own ranks, sowing discord at the worst possible moment." }
+        ];
+
+        function processChatInput() {
+            const input = chatInput.value.trim().toLowerCase();
+            if (!input) return;
+            chatHistory.innerHTML += `<p><strong>You:</strong> ${chatInput.value}</p>`;
+            chatInput.value = '';
+            let theme = null;
+            let settingKey = null;
+
+            if (input.includes("loss")) theme = "loss";
+            else if (input.includes("betrayal")) theme = "betrayal";
+            else if (input.includes("sacrifice")) theme = "sacrifice";
+            else if (input.includes("despair")) theme = "despair";
+            else {
+                chatHistory.innerHTML += `<p><strong>Story Weaver:</strong> Please specify a theme (e.g., loss, betrayal, sacrifice, despair). For example, "Tell me a story about loss in a medieval kingdom."</p>`;
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                return;
+            }
+
+            if (input.includes("medieval kingdom")) settingKey = "medieval kingdom";
+            else if (input.includes("post-apocalyptic wasteland")) settingKey = "post-apocalyptic wasteland";
+            else if (input.includes("colonial village")) settingKey = "colonial village";
+            else if (input.includes("futuristic city")) settingKey = "futuristic city";
+            else {
+                chatHistory.innerHTML += `<p><strong>Story Weaver:</strong> Please specify a setting (e.g., medieval kingdom, post-apocalyptic wasteland, colonial village, futuristic city). For example, "Tell me a story about loss in a medieval kingdom."</p>`;
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                return;
+            }
+            chatHistory.innerHTML += `<p><strong>Story Weaver:</strong> Weaving a tragic story of ${theme} set in a ${settingKey}... Scroll up to read and listen!</p>`;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            generateStory(theme, settingKey);
+        }
+        function generateStory(theme, settingKey) {
+            const characterOptions = characters[theme];
+            const protagonist = characterOptions[Math.floor(Math.random() * characterOptions.length)];
+
+    
+            const secondaryChar = secondaryCharacters[Math.floor(Math.random() * secondaryCharacters.length)]
+            const setting = settings[settingKey];
+            const locations = [...setting.locations];
+            while (locations.length < 5) {
+                locations.push(locations[Math.floor(Math.random() * locations.length)]);
+            }
+            const event1 = setting.events[Math.floor(Math.random() * setting.events.length)];
+            let event2 = setting.events[Math.floor(Math.random() * setting.events.length)];
+            while (event2 === event1) {
+                event2 = setting.events[Math.floor(Math.random() * setting.events.length)];
+            }
+            let event3 = setting.events[Math.floor(Math.random() * setting.events.length)];
+            while (event3 === event1 || event3 === event2) {
+                event3 = setting.events[Math.floor(Math.random() * setting.events.length)];
+            }
+
+            // Select subplot
+            const subplot = subplots[Math.floor(Math.random() * subplots.length)];
+
+            // Select emotional beats
+            const emotionalBeatsList = [...emotionalBeats];
+            const selectedEmotionalBeats = [];
+            for (let i = 0; i < 5; i++) {
+                const index = Math.floor(Math.random() * emotionalBeatsList.length);
+                selectedEmotionalBeats.push(emotionalBeatsList.splice(index, 1)[0]);
+            }
+
+            // Select tragic twist
+            const tragicTwist = tragicTwists[Math.floor(Math.random() * tragicTwists.length)];
+
+            // Select obstacles
+            const obstaclesList = [...obstacles];
+            const selectedObstacles = [];
+            for (let i = 0; i < 3; i++) {
+                const index = Math.floor(Math.random() * obstaclesList.length);
+                selectedObstacles.push(obstaclesList.splice(index, 1)[0]);
+            }
+
+            // Generate story title
+            const titles = [
+                `The ${theme.charAt(0).toUpperCase() + theme.slice(1)} of ${setting.name}`,
+                `${protagonist.name}'s Lament`,
+                `Echoes of a Fallen ${setting.name}`,
+                `The Last Light of ${setting.name}`,
+                `A ${theme.charAt(0).toUpperCase() + theme.slice(1)} in ${setting.name}`,
+                `The Tragedy of ${protagonist.name}`,
+                `${setting.name}: A Tale of ${theme.charAt(0).toUpperCase() + theme.slice(1)}`
+            ];
+            const storyTitle = titles[Math.floor(Math.random() * titles.length)];
+            const story = `
+                <h2>${storyTitle}</h2>
+                <div id="toc">
+                    <h3>Table of Contents</h3>
+                    <ul>
+                        <li><a href="#chapter1">Chapter 1: A World in Ruins</a></li>
+                        <li><a href="#chapter2">Chapter 2: The Weight of Memory</a></li>
+                        <li><a href="#chapter3">Chapter 3: A Fragile Alliance</a></li>
+                        <li><a href="#chapter4">Chapter 4: The First Reckoning</a></li>
+                        <li><a href="#chapter5">Chapter 5: Shadows of ${theme.charAt(0).toUpperCase() + theme.slice(1)}</a></li>
+                        <li><a href="#chapter6">Chapter 6: The Final Path</a></li>
+                        <li><a href="#chapter7">Chapter 7: The End of All Things</a></li>
+                    </ul>
+                </div>
+
+                <div class="chapter" id="chapter1">
+                    <h3>Chapter 1: A World in Ruins</h3>
+                    <p>In ${setting.description}, ${protagonist.name}, ${protagonist.role} ${protagonist.backstory}, stood alone in ${locations[0]}. The air was heavy with the aftermath of ${event1}, and the survivors whispered of darker days yet to come. ${protagonist.name} had always been ${protagonist.trait}, but their ${protagonist.flaw} made this moment all the more unbearable.</p>
+                    <p>${protagonist.name} ${selectedEmotionalBeats[0].description} They had come to this place seeking answers, driven by ${protagonist.goal} But the ruins offered no solace, only memories of what had been lost. As they sifted through the debris, they found a small token—a reminder of better days. It was enough to spark a fire in their heart, a determination to press on, no matter the cost.</p>
+                    <p>In the distance, ${protagonist.name} heard footsteps. It was ${secondaryChar.name}, ${secondaryChar.role} ${secondaryChar.relationship} '${protagonist.name},' they called, their voice a mix of relief and caution, 'I thought I’d never find you here.' The two shared a moment of silence, the unspoken bond between them a fragile thread in a world unraveling at the seams. But ${protagonist.name}’s ${protagonist.flaw} made them wary—could they truly trust ${secondaryChar.name}?</p>
+                </div>
+
+                <div class="chapter" id="chapter2">
+                    <h3>Chapter 2: The Weight of Memory</h3>
+                    <p>${protagonist.name} and ${secondaryChar.name} set out together, their journey taking them to ${locations[1]}. The landscape was a stark contrast to the ruins they had left behind, but no less haunting. Here, the scars of ${event1} were still fresh, the ground littered with the remnants of lives torn apart. ${protagonist.name} couldn’t help but think of their own losses, the faces they would never see again.</p>
+                    <p>As they walked, ${secondaryChar.name} spoke of their own struggles. 'I’ve seen things, ${protagonist.name},' they admitted, their voice low. 'Things I can’t unsee. But I believe there’s still a chance for us—for all of us.' ${protagonist.name} wanted to believe them, but their ${protagonist.flaw} made it difficult. They ${selectedEmotionalBeats[1].description}, the pain too raw to ignore.</p>
+                    <p>That night, as they made camp, ${subplot.description} ${protagonist.name} listened in silence, their mind racing with the implications. The journey had only just begun, but already it felt as though the world was conspiring against them, each step heavier than the last. ${secondaryChar.name}, sensing their turmoil, placed a hand on their shoulder, but the gesture only deepened ${protagonist.name}’s doubts.</p>
+                </div>
+
+                <div class="chapter" id="chapter3">
+                    <h3>Chapter 3: A Fragile Alliance</h3>
+                    <p>The next day brought news of ${event2}, a calamity that shook the already fragile remnants of ${setting.name}. ${protagonist.name} and ${secondaryChar.name} had no choice but to press on, their destination now ${locations[2]}. The journey was arduous, the path fraught with ${selectedObstacles[0].description} ${protagonist.name}’s ${protagonist.flaw} made the challenge even harder, their resolve tested at every turn.</p>
+                    <p>Among the survivors they met along the way was an elder who spoke of a legend, a tale that promised salvation for ${setting.name}. '${protagonist.name},' the elder said, their voice trembling with age, 'you carry the weight of ${theme}. But perhaps that is why you are the one to see this through.' ${protagonist.name} listened, their heart torn between skepticism and a desperate need to believe. They spent the night among the survivors, their stories of loss and resilience echoing ${protagonist.name}’s own.</p>
+                    <p>But hope, as always, came with a price. Just as ${protagonist.name} began to feel a flicker of optimism, ${secondaryChar.name} revealed a truth they had been hiding. The revelation struck ${protagonist.name} like a blow, forcing them to question everything they thought they knew about their companion. The fragile bond they had built began to fray, and ${protagonist.name}’s ${protagonist.flaw} only deepened their mistrust.</p>
+                </div>
+
+                <div class="chapter" id="chapter4">
+                    <h3>Chapter 4: The First Reckoning</h3>
+                    <p>At ${locations[2]}, ${protagonist.name} faced a choice that would define the rest of their journey. The elder’s words echoed in their mind, but so did the sting of ${secondaryChar.name}’s revelation. ${event2} had left its mark, and the path forward was more treacherous than ever, especially with ${selectedObstacles[1].description} ${protagonist.name} ${selectedEmotionalBeats[2].description}, the realization a bitter pill to swallow.</p>
+                    <p>Determined to press on, ${protagonist.name} ventured deeper into ${locations[2]}, seeking the truth behind the legend the elder had spoken of. What they found was both more and less than they had hoped for—a relic of the past, a symbol of what ${setting.name} had once been. But it came with a warning: to pursue this path was to invite greater suffering, not just for ${protagonist.name}, but for all who remained.</p>
+                    <p>${secondaryChar.name}, despite their earlier betrayal, stood by ${protagonist.name}’s side. 'We’ve come too far to turn back now,' they said, their voice steady despite the fear in their eyes. Together, they made a decision that would change the course of their fates, a decision born of desperation and the faint hope that they could still make a difference. But ${protagonist.name}’s ${protagonist.flaw} made them question whether they were leading them both to ruin.</p>
+                </div>
+
+                <div class="chapter" id="chapter5">
+                    <h3>Chapter 5: Shadows of ${theme.charAt(0).toUpperCase() + theme.slice(1)}</h3>
+                    <p>Their journey took them to ${locations[3]}, where ${event3} cast a long shadow over ${setting.name}. ${protagonist.name} and ${secondaryChar.name} faced ${selectedObstacles[2].description}, a trial that pushed them to their limits. ${protagonist.name}’s ${protagonist.flaw} became their greatest enemy, threatening to undo all they had fought for. They ${selectedEmotionalBeats[3].description}, the weight of their journey nearly breaking them.</p>
+                    <p>Amidst the chaos, the subplot continued to unfold. ${subplot.description.split('.')[1]} ${protagonist.name} grappled with this new development, their resolve tested as never before. ${secondaryChar.name}, seeing their struggle, tried to offer comfort, but their words fell on deaf ears. ${protagonist.name} was too consumed by their own pain, their ${protagonist.flaw} blinding them to the support they so desperately needed.</p>
+                    <p>By the time they reached the outskirts of ${locations[3]}, ${protagonist.name} had begun to see the true cost of their journey. The relic they carried was both a beacon and a curse, its promise of salvation tainted by the suffering it demanded. They began to wonder if ${protagonist.goal.split("to ")[1]} was worth the price they would have to pay, a question that would haunt them as they pressed on.</p>
+                </div>
+
+                <div class="chapter" id="chapter6">
+                    <h3>Chapter 6: The Final Path</h3>
+                    <p>The final leg of their journey took them to ${locations[4]}, where the air was thick with the echoes of ${event3}. ${protagonist.name} and ${secondaryChar.name} were running out of time, their goal within reach but more dangerous than ever. The relic they carried pulsed with a dark energy, a reminder of the choice that lay ahead. ${protagonist.name} ${selectedEmotionalBeats[4].description}, the enormity of their task overwhelming them.</p>
+                    <p>${secondaryChar.name}, despite their own fears, remained steadfast. 'We’ve come this far together,' they said, their voice a quiet anchor in the storm. 'Whatever happens, I’ll stand by you.' ${protagonist.name} nodded, grateful for their companion, but their ${protagonist.flaw} made them fear that they were leading ${secondaryChar.name} to their doom. The journey had changed them both, and not for the better.</p>
+                    <p>As they approached their final destination, the truth became clear: ${tragicTwist.description} ${protagonist.name} stood at the precipice, the weight of their journey pressing down on them. They thought of all they had lost, all they had fought for. The faces of those they had loved flashed before their eyes, each one a reminder of why they had come this far. But the cost of ${theme} was too great, and they knew that whatever choice they made, there would be no happy ending.</p>
+                </div>
+
+                <div class="chapter" id="chapter7">
+                    <h3>Chapter 7: The End of All Things</h3>
+                    <p>In the final moments, ${protagonist.name} made their choice. They ${protagonist.goal.split("to ")[1]}, but the victory was hollow. The legend had promised salvation, but all it brought was more pain, more loss. ${setting.name} would never be the same, and neither would ${protagonist.name}. They had fought against ${theme}, but in the end, it had consumed them, their ${protagonist.flaw} sealing their fate.</p>
+                    <p>${secondaryChar.name} stood beside them, their own heart heavy with the weight of their journey. Together, they looked out over ${locations[4]}, the landscape a testament to all they had endured. 'Do you think it was worth it?' ${secondaryChar.name} asked, their voice barely audible over the wind. ${protagonist.name} didn’t answer, but the look in their eyes said everything—a mix of regret, sorrow, and a quiet acceptance of their fate.</p>
+                    <p>The story of ${protagonist.name} would be told in ${setting.name} for generations to come, a tale of ${theme} that served as both a warning and a lament. In a world that had forgotten how to hope, their journey was a reminder of the cost of dreaming, a tragic echo of a time when things might have been different. And as the wind carried their story across the land, it whispered a final truth: some wounds never heal, and some losses can never be undone.</p>
+                </div>
+            `;
+
+            storyOutput.innerHTML = story;
+
+            // Scroll to top
+            document.getElementById('storyArea').scrollTop = 0;
+        }
+
+        // Narration functionality using Edge-TTS
+        async function startNarration() {
+            if (audioElement) {
+                stopNarration();
+            }
+
+            const text = storyOutput.innerText;
+            if (!text) {
+                narrationError.textContent = "No story text available to narrate.";
+                return;
+            }
+
+            try {
+                narrationError.textContent = "";
+                const response = await fetch('http://localhost:5050/v1/audio/speech', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        input: text,
+                        voice: 'en-US-AvaNeural',
+                        response_format: 'mp3',
+                        speed: 1.0
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch audio: ${response.statusText}`);
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioElement = new Audio(audioUrl);
+                audioElement.play();
+            } catch (error) {
+                narrationError.textContent = `Narration failed: ${error.message}. Ensure the Edge-TTS server is running at http://localhost:5050.`;
+            }
+        }
+
+        function pauseNarration() {
+            if (audioElement) {
+                audioElement.pause();
+            } else {
+                narrationError.textContent = "No narration is currently playing.";
+            }
+        }
+
+        function stopNarration() {
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                URL.revokeObjectURL(audioElement.src);
+                audioElement = null;
+            }
+            narrationError.textContent = "";
+        }
+    </script>
+</body>
+</html>
